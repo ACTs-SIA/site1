@@ -2,23 +2,26 @@
 
 /** @var \Laravel\Lumen\Routing\Router $router */
 
-/*
-|--------------------------------------------------------------------------
-| Application Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register all of the routes for an application.
-| It is a breeze. Simply tell Lumen the URIs it should respond to
-| and give it the Closure to call when that URI is requested.
-|
-*/
-
-$router->get('/', function () use ($router) {
-    return $router->app->version();
+// --- PUBLIC ROUTES ---
+$router->post('/MovUser/login', 'AuthController@login');
+$router->post('/MovUser/register', 'AuthController@register');
+ 
+$router->get('/test', function () {
+    return 'Route working';
 });
 
-$router->get('/users', 'UserController@index');           // Get all users
-$router->post('/users', 'UserController@add');           // Create new user
-$router->get('/users/{id}', 'UserController@show');      // Get user by id
-$router->put('/users/{id}', 'UserController@update');    // Update user
-$router->delete('/users/{id}', 'UserController@delete'); // Delete user
+// --- PROTECTED ROUTES ---
+$router->group(['middleware' => 'auth'], function () use ($router) {
+
+    $router->get('/profile', function () {
+        return response()->json(auth()->user());
+    });
+
+    // MOVIE USERS (Site 1)
+    // These now use Guzzle to talk to Site 2 (Port 8001)
+    $router->get('/MovUser', 'MovieUserController@index');
+    $router->post('/MovUser', 'MovieUserController@add'); 
+    $router->get('/MovUser/{id}', 'MovieUserController@show');
+    $router->put('/MovUser/{id}', 'MovieUserController@update');
+    $router->delete('/MovUser/{id}', 'MovieUserController@delete');
+});

@@ -3,40 +3,37 @@
 namespace App\Http\Middleware;
 
 use Closure;
-use Illuminate\Contracts\Auth\Factory as Auth;
+use Exception;
+use Tymon\JWTAuth\Facades\JWTAuth;
+use Tymon\JWTAuth\Http\Middleware\BaseMiddleware;
+use App\Models\MovUser; 
 
-class Authenticate
+class Authenticate extends BaseMiddleware
 {
-    /**
-     * The authentication guard factory instance.
-     *
-     * @var \Illuminate\Contracts\Auth\Factory
-     */
-    protected $auth;
-
-    /**
-     * Create a new middleware instance.
-     *
-     * @param  \Illuminate\Contracts\Auth\Factory  $auth
-     * @return void
-     */
-    public function __construct(Auth $auth)
-    {
-        $this->auth = $auth;
-    }
-
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
-     * @param  string|null  $guard
-     * @return mixed
-     */
     public function handle($request, Closure $next, $guard = null)
     {
-        if ($this->auth->guard($guard)->guest()) {
-            return response('Unauthorized.', 401);
+        $header = $request->header('Authorization');
+
+        if (!$header || strpos($header, 'Bearer ') !== 0) {
+            return response()->json(['status' => 'Unauthorized', 'message' => 'Token missing.'], 401);
+        }
+
+        try {
+            // Manually get payload to avoid onceUsingId crash
+            $payload = JWTAuth::parseToken()->getPayload();
+            $userId = $payload->get('sub');
+
+            $user = MovUser::find($userId);
+
+            if (!$user) {
+                return response()->json(['message' => 'User not found'], 404);
+            }
+
+            // Plug the user into the request
+            app('auth')->setUser($user);
+
+        } catch (Exception $e) {
+            return response()->json(['status' => 'Error', 'message' => $e->getMessage()], 401);
         }
 
         return $next($request);

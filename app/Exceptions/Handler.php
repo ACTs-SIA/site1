@@ -3,10 +3,13 @@
 namespace App\Exceptions;
 
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Validation\ValidationException;
 use Laravel\Lumen\Exceptions\Handler as ExceptionHandler;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use GuzzleHttp\Exception\ClientException; 
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -18,6 +21,7 @@ class Handler extends ExceptionHandler
      */
     protected $dontReport = [
         AuthorizationException::class,
+        AuthenticationException::class,
         HttpException::class,
         ModelNotFoundException::class,
         ValidationException::class,
@@ -49,6 +53,42 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Throwable $exception)
     {
-        return parent::render($request, $exception);
+        
+        if ($exception instanceof ValidationException) {
+            return response()->json([
+                'error' => 'Validation failed',
+                'details' => $exception->validator->errors()
+            ], 422);
+        }
+
+        
+        if ($exception instanceof AuthenticationException) {
+            return response()->json([
+                'error' => 'Unauthorized',
+                'message' => 'Token is missing, expired, or JWT_SECRET is mismatched.'
+            ], 401);
+        }
+
+        
+        if ($exception instanceof ClientException) {
+            $response = $exception->getResponse();
+            $content = json_decode($response->getBody()->getContents(), true);
+            return response()->json(
+                $content ?: ['error' => 'Microservice request failed'],
+                $response->getStatusCode()
+            );
+        }
+
+       
+        if ($exception instanceof ModelNotFoundException) {
+            return response()->json(['error' => 'Resource not found'], 404);
+        }
+
+        
+        if (env('APP_DEBUG', false)) {
+            return parent::render($request, $exception);
+        }
+
+        return response()->json(['error' => 'Server error'], 500);
     }
 }
