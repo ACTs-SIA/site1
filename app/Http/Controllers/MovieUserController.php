@@ -37,7 +37,7 @@ class MovieUserController extends Controller
 
         try {
             // We call Site 2 to check if the movie exists
-            $client->get("https://site2-microservice.onrender.com" . $request->movie_id, [
+            $client->get("https://site2-microservice.onrender.com/movie/" . $request->movie_id, [
                 'headers' => ['Authorization' => $token]
             ]);
         } catch (\Exception $e) {
