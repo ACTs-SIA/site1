@@ -22,8 +22,6 @@ class MovieUserController extends Controller
      */
     public function add(Request $request)
     {
-        // 1. LOCAL VALIDATION (The "Double Lock" Part 1)
-        // If movie_id is missing from your Postman JSON, it will now show in the error list.
         $rules = [
             'username' => 'required|max:20|unique:mov_users,username',
             'password' => 'required|max:20',
@@ -39,7 +37,7 @@ class MovieUserController extends Controller
 
         try {
             // We call Site 2 to check if the movie exists
-            $client->get("https://site2-name.onrender.com/movie/" . $request->movie_id, [
+            $client->get("https://site2-microservice.onrender.com" . $request->movie_id, [
                 'headers' => ['Authorization' => $token]
             ]);
         } catch (\Exception $e) {
@@ -58,9 +56,6 @@ class MovieUserController extends Controller
         return response()->json($user, 201);
     }
 
-    /**
-     * UPDATE USER: Validates movie_id exists before saving changes
-     */
     public function update(Request $request, $id)
     {
         $user = MovUser::findOrFail($id);
@@ -86,7 +81,7 @@ class MovieUserController extends Controller
         
         $user->fill($request->all());
 
-        // "At least one value must change" check
+
         if ($user->isClean()) {
             return response()->json(['error' => 'At least one value must change'], 422);
         }
@@ -99,9 +94,6 @@ class MovieUserController extends Controller
         return response()->json($user, 200);
     }
 
-    /**
-     * INDEX: List all users and perform the "Virtual Join" with Site 2
-     */
     public function index()
     {
         $users = MovUser::all();
