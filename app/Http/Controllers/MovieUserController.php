@@ -77,7 +77,7 @@ class MovieUserController extends Controller
         $token = $request->header('Authorization');
 
         try {
-            $client->get("https://site2-name.onrender.com/movie/" . $request->movie_id, [
+            $client->get("https://site2-microservice.onrender.com/movie/" . $request->movie_id, [
                 'headers' => ['Authorization' => $token]
             ]);
         } catch (\Exception $e) {
@@ -112,7 +112,7 @@ class MovieUserController extends Controller
         foreach ($users as $user) {
             $movie = null;
             try {
-                $response = $client->get("https://site2-name.onrender.com/movie/" . $user->movie_id, [
+                $response = $client->get("https://site2-microservice.onrender.com/movie/" . $user->movie_id, [
                     'headers' => ['Authorization' => $token]
                 ]);
                 $movie = json_decode($response->getBody()->getContents(), true);
