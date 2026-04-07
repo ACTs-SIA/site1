@@ -18,13 +18,15 @@ COPY . /var/www/html
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 RUN composer install --no-dev --optimize-autoloader
 
-# 4. --- THE LOGGING FIX ---
-# We create the folders and set the owner to 'www-data' (the Apache user)
+# 4. --- THE PERMANENT PERMISSION FIX ---
+# We create the folder, create a blank log file, and give full ownership to www-data
 RUN mkdir -p /var/www/html/storage/logs \
     /var/www/html/storage/framework/views \
     /var/www/html/bootstrap/cache \
+    && touch /var/www/html/storage/logs/lumen-$(date +%Y-%m-%d).log \
     && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
-    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+    && chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache
 
 # 5. --- STARTUP ---
-CMD ["sh", "-c", "composer dump-autoload && php artisan migrate --force && apache2-foreground"]
+# We use 'chown' again right before starting to ensure no files were missed
+CMD ["sh", "-c", "chown -R www-data:www-data /var/www/html/storage && php artisan migrate --force && apache2-foreground"]
