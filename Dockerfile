@@ -25,13 +25,14 @@ COPY . /var/www/html
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Install project dependencies AND generate optimized autoloader
+# Install project dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Set permissions for storage AND bootstrap (crucial for Kernel access)
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap \
-    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap
+# --- FIX: PERMISSIONS FOR LOGS & CACHE ---
+# This ensures the web server (www-data) can write to the storage folder
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
+    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# --- THE FIX FOR RENDER FREE TIER ---
-# We force a refresh of the autoloader before migrating to fix the Kernel error
+# --- FIX: STARTUP COMMAND ---
+# We force the autoloader refresh, then migrate, then start Apache
 CMD ["sh", "-c", "composer dump-autoload && php /var/www/html/artisan migrate --force && apache2-foreground"]
